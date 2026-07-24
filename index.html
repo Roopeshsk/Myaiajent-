@@ -200,7 +200,299 @@
             </div>
         </div>
     </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Image Editing Assistant</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --panel-bg: #1e1e1e;
+            --text-main: #f5f5f5;
+            --text-muted: #a0a0a0;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --border-color: #333;
+        }
 
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Layout */
+        .sidebar {
+            width: 350px;
+            background-color: var(--panel-bg);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        /* Typography */
+        h1 {
+            font-size: 1.5rem;
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: var(--text-main);
+        }
+
+        h2 {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: var(--text-main);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        /* Controls */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        select, textarea, input[type="file"] {
+            width: 100%;
+            background-color: #2a2a2a;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        select[multiple] {
+            height: 150px;
+        }
+
+        button {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            width: 100%;
+            font-weight: 600;
+        }
+
+        button:hover {
+            background-color: var(--accent-hover);
+        }
+
+        /* Workspace */
+        .workspace {
+            display: flex;
+            gap: 20px;
+            height: 100%;
+        }
+
+        .image-container {
+            flex: 1;
+            background-color: var(--panel-bg);
+            border: 1px dashed var(--border-color);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: var(--text-muted);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .image-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            display: none;
+        }
+
+        /* Output Console */
+        .console {
+            margin-top: 20px;
+            background-color: #000;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 15px;
+            font-family: "Courier New", Courier, monospace;
+            font-size: 0.9rem;
+            color: #4ade80;
+            min-height: 120px;
+            white-space: pre-wrap;
+            overflow-y: auto;
+        }
+
+        .rules-note {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 20px;
+            padding: 10px;
+            background: #2a2a2a;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar Controls -->
+    <div class="sidebar">
+        <h1>AI Image Editor</h1>
+        
+        <div class="form-group">
+            <label for="imageUpload">Upload Image</label>
+            <input type="file" id="imageUpload" accept="image/*">
+        </div>
+
+        <div class="form-group">
+            <label for="editOperations">Select Operations (Ctrl/Cmd + Click)</label>
+            <select id="editOperations" multiple>
+                <option value="Remove objects">Remove objects</option>
+                <option value="Add objects">Add objects</option>
+                <option value="Replace background">Replace background</option>
+                <option value="Change clothing">Change clothing</option>
+                <option value="Face enhancement">Face enhancement</option>
+                <option value="Skin retouch">Skin retouch</option>
+                <option value="Color correction">Color correction</option>
+                <option value="Lighting adjustment">Lighting adjustment</option>
+                <option value="Day to night">Day to night / Night to day</option>
+                <option value="Cartoon/Anime style">Cartoon / Anime / Ghibli style</option>
+                <option value="Upscale/Sharpen">Upscale / Sharpen</option>
+                <option value="Outpainting">Outpainting / Expand image</option>
+                <option value="Remove watermark">Remove watermark</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="prompt">Specific Instructions</label>
+            <textarea id="prompt" placeholder="Describe exactly what needs to be changed..."></textarea>
+        </div>
+
+        <button id="generateBtn">Generate Edit Instructions</button>
+
+        <div class="rules-note">
+            <strong>System Rules Active:</strong> Identity preservation, realistic lighting matching, artifact prevention, natural blending, professional-quality enforcement.
+        </div>
+    </div>
+
+    <!-- Main Workspace -->
+    <div class="main-content">
+        <h2>Preview</h2>
+        <div class="workspace">
+            <div class="image-container" id="sourceContainer">
+                <span id="uploadPlaceholder">Original Image (Upload to view)</span>
+                <img id="sourceImage" alt="Source Preview">
+            </div>
+            <div class="image-container" id="resultContainer">
+                <span>Result Preview</span>
+            </div>
+        </div>
+
+        <h2>Optimized AI Editing Instructions</h2>
+        <div class="console" id="outputConsole">Awaiting input...</div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const imageUpload = document.getElementById('imageUpload');
+        const sourceImage = document.getElementById('sourceImage');
+        const uploadPlaceholder = document.getElementById('uploadPlaceholder');
+        const generateBtn = document.getElementById('generateBtn');
+        const editOperations = document.getElementById('editOperations');
+        const promptText = document.getElementById('prompt');
+        const outputConsole = document.getElementById('outputConsole');
+        const resultContainer = document.getElementById('resultContainer');
+
+        // Handle Image Upload Preview
+        imageUpload.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    sourceImage.src = event.target.result;
+                    sourceImage.style.display = 'block';
+                    uploadPlaceholder.style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Handle Instruction Generation
+        generateBtn.addEventListener('click', function() {
+            // Gather selected operations
+            const selectedOps = Array.from(editOperations.selectedOptions).map(opt => opt.value);
+            const userPrompt = promptText.value.trim();
+
+            if (selectedOps.length === 0 && !userPrompt) {
+                outputConsole.textContent = "Error: Please select at least one operation or provide instructions.";
+                outputConsole.style.color = "#ef4444";
+                return;
+            }
+
+            outputConsole.style.color = "#4ade80";
+            outputConsole.textContent = "Processing logic...\n\n";
+            resultContainer.innerHTML = '<span>Processing...</span>';
+
+            // Simulate AI processing delay
+            setTimeout(() => {
+                let instructions = "### OPTIMIZED EDITING INSTRUCTIONS ###\n\n";
+                
+                if (selectedOps.length > 0) {
+                    instructions += "TARGET OPERATIONS:\n";
+                    selectedOps.forEach(op => {
+                        instructions += `- ${op}\n`;
+                    });
+                    instructions += "\n";
+                }
+
+                if (userPrompt) {
+                    instructions += `USER DIRECTIVE:\n"${userPrompt}"\n\n`;
+                }
+
+                instructions += "EXECUTION CONSTRAINTS:\n";
+                instructions += "- Preserve subject identity and facial features.\n";
+                instructions += "- Match existing perspective, shadows, and textures.\n";
+                instructions += "- Ensure zero visible editing artifacts.\n";
+                instructions += "- Blend adjustments naturally with original lighting.\n";
+
+                outputConsole.textContent = instructions;
+                
+                // Mock result state
+                resultContainer.innerHTML = '<span style="color: #4ade80;">[ AI Processing Complete ]<br>Check console for instructions.</span>';
+            }, 800);
+        });
+    </script>
+</body>
+</html>
     <script>
         // --- State Management ---
         const DEFAULT_MODEL = "deepseek/deepseek-r1:free";
